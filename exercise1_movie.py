@@ -83,5 +83,5 @@ def recommend(movie_title):
     return df['movie_title'].iloc[recommended_idx]
 
 
-recommend('Interstellar')
+recommend('Mortal Kombat')
 
