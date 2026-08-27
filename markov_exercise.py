@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 
+
 with open('edgar_allan_poe.txt') as f:
     text1 = f.read().lower()
 
@@ -106,77 +107,171 @@ P_0 = np.ones(V)
 
 
 
-def make_pi(encoded_lines,y,poet_id=0):
-    first_word = {}
-    
-    for words, poet in zip(encoded_lines,y ):
-        if poet_id != poet:
-            continue
-        if words:
-            
-            word = words[0]
-                
-            if word in first_word:
-                first_word[word] += 1
-            else:
-                first_word[word] = 1
-                
-    total = sum(first_word.values())
-    
-    
-    proba = {
-        word: count / total
-        for word, count in first_word.items()
-    }
-    
-   
-    return proba
 
-make_pi(encoded_lines_train, y_train, poet_id=0)
-make_pi(encoded_lines_test, y_test, poet_id=0)
+def make_pi(encoded_lines, y, poet_id, V):
+    pi = np.zeros(V)
 
-
-
-
-def make_A(encoded_lines, y, poet_id):
-    transitions = {}
-    
-    for words, poet in zip(encoded_lines,y):
+    for words, poet in zip(encoded_lines, y):
         if poet != poet_id:
             continue
-        
+
+        if words:
+            first_word = words[0]
+            pi[first_word] += 1
+
+    total = pi.sum()
+
+    if total > 0:
+        pi /= total
+
+    return pi
+
+p0 = np.array(make_pi(encoded_lines_train, y_train, poet_id=0, V=V))
+p1 = np.array(make_pi(encoded_lines_train, y_train, poet_id=1, V=V))
+
+
+
+
+def make_A(encoded_lines, y, poet_id, V):
+    A = np.ones((V, V))  # Laplace smoothing
+
+    for words, poet in zip(encoded_lines, y):
+
+        if poet != poet_id:
+            continue
+
         for i in range(len(words) - 1):
             current_word = words[i]
-            next_word = words[i+1]
-            
-            
-            if current_word not in transitions:
-                transitions[current_word] = {}
-                
-            if next_word not in transitions[current_word]:
-                transitions[current_word][next_word] = 1
-            else:
-                transitions[current_word][next_word] += 1
-        # Convert counts to probabilities
-    A = {}
+            next_word = words[i + 1]
 
-    for current_word, next_words in transitions.items():
+            A[current_word, next_word] += 1
 
-        total = sum(next_words.values())
-
-        A[current_word] = {
-            next_word: count / total
-            for next_word, count in next_words.items()
-        }
+    # Normalize each row
+    A /= A.sum(axis=1, keepdims=True)
 
     return A
         
 
-make_A(encoded_lines_train, y_train, poet_id=0)
-make_A(encoded_lines_test, y_test, poet_id=0) 
+A0 = make_A(encoded_lines_train, y_train, poet_id=0,V=V)
+A1 = make_A(encoded_lines_train, y_train, poet_id=1,V=V)
+
+A0 = np.log(A0)
+A1 = np.log(A1)
+
+
+## compute priors
+prior0 = np.mean(y_train == 0)
+prior1 = np.mean(y_train == 1)
+
+logprior0 = np.log(prior0)
+logprior1 = np.log(prior1)
 
 
 
+def predict(X_test, word_2_int, pi0, pi1,
+            A0, A1, prior0, prior1):
+
+    predictions = []
+
+    # Convert probabilities to log probabilities
+    logpi0 = np.log(pi0)
+    logpi1 = np.log(pi1)
+
+    logA0 = np.log(A0)
+    logA1 = np.log(A1)
+
+    logprior0 = np.log(prior0)
+    logprior1 = np.log(prior1)
+
+    unk = word_2_int['<unk>']
+
+    for line in X_test:
+
+        # Split sentence into words
+        words = line.split()
+
+        # Convert words to integers
+        encoded = [
+            word_2_int.get(word, unk)
+            for word in words
+        ]
+
+        # Empty sentence
+        if len(encoded) == 0:
+            predictions.append(0)
+            continue
+
+        # First word
+        first_word = encoded[0]
+
+        # -------------------------
+        # Score for Poe
+        # -------------------------
+
+        score0 = logprior0 + logpi0[first_word]
+
+        for i in range(len(encoded) - 1):
+
+            current_word = encoded[i]
+            next_word = encoded[i + 1]
+
+            score0 += logA0[current_word, next_word]
+
+        # -------------------------
+        # Score for Frost
+        # -------------------------
+
+        score1 = logprior1 + logpi1[first_word]
+
+        for i in range(len(encoded) - 1):
+
+            current_word = encoded[i]
+            next_word = encoded[i + 1]
+
+            score1 += logA1[current_word, next_word]
+
+        # -------------------------
+        # Choose poet
+        # -------------------------
+
+        if score0 > score1:
+            predictions.append(0)
+        else:
+            predictions.append(1)
+
+    return np.array(predictions)
 
 
+X_test = X_test.apply(
+    lambda line: line.translate(
+        str.maketrans('', '', string.punctuation)
+    )
+)
 
+
+y_pred_train = predict(
+    
+    X_train,
+    word_2_int,
+    p0,
+    p1,
+    A0,
+    A1,
+    prior0,
+    prior1
+    
+)
+
+y_pred = predict(
+    X_test,
+    word_2_int,
+    p0,
+    p1,
+    A0,
+    A1,
+    prior0,
+    prior1
+)
+
+f1_score(y_train, y_pred_train)
+f1_score(y_test, y_pred)
