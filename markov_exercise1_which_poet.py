@@ -19,11 +19,6 @@ t1 = text1.split('\n')
 t2 = text2.split('\n')
 
 
-
-
-
-
-
 df = pd.DataFrame({
     'poetry_line': t1,
     'poet': 0
