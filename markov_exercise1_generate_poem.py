@@ -84,16 +84,16 @@ def make_A(text):
             word3 = words[i+2]
         
         
-        if word1 not in A:
-            A[word1] = {}
-        
-        if word2 not in A[word1]:
-            A[word1][word2] = {}
-        
-        if word3 not in A[word1][word2]:
-            A[word1][word2][word3] = 1
-        else:
-            A[word1][word2][word3] += 1
+            if word1 not in A:
+                A[word1] = {}
+            
+            if word2 not in A[word1]:
+                A[word1][word2] = {}
+            
+            if word3 not in A[word1][word2]:
+                A[word1][word2][word3] = 1
+            else:
+                A[word1][word2][word3] += 1
         
     return A
             
@@ -121,25 +121,65 @@ prob_A_text_0 = prob_A(A_text_0)
 prob_A_text_1 = prob_A(A_text_1)
 
 
-def sample_word(prob, word1, word2):
+def sample_word(prob_dict):
     
-    
-    word_2_before = prob[word1][word2]
-    
-    prob_sample = np.random.random()
-    
-    cum = 0
-    
-    
-    for word3, probability in word_2_before.items():
-        cum += probability
-        
-        if prob_sample < cum:
-            return word3
-    
-
-        
-
-sample_prob_text_0 = sample_word(prob_A_text_0, prob_A_text_0.keys(),prob_A_text_0.values()[0])
+    p_sample = np.random.random()
+    cumulative = 0
+    for word, probability in prob_dict.items():
+        cumulative += probability
+        if p_sample < cumulative:
+            return word
+    # floating point edge case: fall back to last word
+    return word
 
 
+def make_A(text):
+    A = {}
+    for line in text:
+        words = line.split()
+        for i in range(len(words) - 2):          # <-- now runs the body every iteration
+            word1, word2, word3 = words[i], words[i+1], words[i+2]
+
+            A.setdefault(word1, {})
+            A[word1].setdefault(word2, {})
+            A[word1][word2][word3] = A[word1][word2].get(word3, 0) + 1
+    return A
+
+def second_word_prob(text):
+    """P(second word | first word) — needed to seed line generation."""
+    second_word_dict = {}
+    for line in text:
+        words = line.split()
+        if len(words) < 2:
+            continue
+        w1, w2 = words[0], words[1]
+        second_word_dict.setdefault(w1, {})
+        second_word_dict[w1][w2] = second_word_dict[w1].get(w2, 0) + 1
+
+    for w1, counts in second_word_dict.items():
+        total = sum(counts.values())
+        for w2 in counts:
+            counts[w2] /= total
+    return second_word_dict
+
+p2_text_0 = second_word_prob(text0)
+p2_text_1 = second_word_prob(text1)
+
+def generate_line(first_word_probs, second_word_probs, transitions, max_len=15):
+    word0 = sample_word(first_word_probs)
+    if word0 not in second_word_probs:
+        return word0
+    word1 = sample_word(second_word_probs[word0])
+    words = [word0, word1]
+
+    while len(words) < max_len:
+        if word0 not in transitions or word1 not in transitions[word0]:
+            break
+        word2 = sample_word(transitions[word0][word1])
+        words.append(word2)
+        word0, word1 = word1, word2
+
+    return ' '.join(words)
+
+# usage
+print(generate_line(p_text_0, p2_text_0, prob_A_text_0))
