@@ -98,3 +98,16 @@ lemm = [token.lemma_ for token in sp_text]
 norm = [token.lemma_ for token in sp_text if not token.is_stop]
 
 " ".join(norm)
+
+def token_lemma_nonstop(text):
+    
+    doc = nlp(text)
+    output = [token.lemma_ for token in doc if not token.is_stop]
+    output = ' '.join(output)
+    return output
+        
+
+test.apply(token_lemma_nonstop)
+
+df.sentences
+df["sentences_processed"] = preprocess_data(df.sentences).apply(token_lemma_nonstop)
