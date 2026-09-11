@@ -34,3 +34,41 @@ def get_sentiment(text):
     
 
 df['sentiment_compound'] = df.sentence.apply(get_sentiment)
+
+
+############################assignment movie reviews############################
+
+
+data_movie = pd.read_csv('./data/movie_reviews.csv')
+df = data_movie.copy(deep=True)
+
+text_movie_info = df['movie_info']
+sen_model = SentimentIntensityAnalyzer()
+sen_model.polarity_scores(text_movie_info[0])
+
+
+sen_model = SentimentIntensityAnalyzer()
+def sentiment_movie_info(text):
+    output = sen_model.polarity_scores(text)
+    return output
+
+sentiment_movie = df["movie_info"].apply(sentiment_movie_info)
+
+
+
+compound = {}
+for i in range(len(sentiment_movie)):
+    
+    output = sentiment_movie.iloc[i]['compound']
+    compound[i] = output
+    
+    
+comp_df = pd.DataFrame(
+    {
+        'compound': compound
+    }
+)
+
+df_full = pd.concat([df, comp_df], axis=1)
+top_ten_light = df_full.sort_values('compound').tail(10)
+top_ten_dark = df_full.sort_values('compound').head(10) 
