@@ -14,8 +14,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 
 
-
-
 from preprocess_text_function import nlp_pipeline
 # create a list of sentences
 data = [
@@ -166,6 +164,10 @@ data_review.sort_values(by='pred_nb', ascending=False)
 ## - feature engineering
 ## - modelling -- trying different probabaility cut-off points
 
+
+
+########################## Assignment: countvectorizer + naive bayes ##########################################
+
 df_movie_reviews = pd.read_csv('./data/movie_reviews.csv')
 
 df_movie_reviews.groupby('director_gender').count()
@@ -180,7 +182,7 @@ X_clean = cv.fit_transform(X_clean)
 X_clean = pd.DataFrame(X_clean.toarray(), columns = cv.get_feature_names_out())
 
 
-X_train, X_test, y_train, y_test = train_test_split(X_clean,y, test_size=0.2, random_state=42 ,shuffle=True)
+X_train, X_test, y_train, y_test = train_test_split(X_clean,y, test_size=0.2, random_state=42)
 
 
 model_nb = MultinomialNB()
@@ -193,4 +195,24 @@ y_pred_test = model_nb.predict(X_test)
 print(classification_report(y_train, y_pred))
 print(classification_report(y_test, y_pred_test))
 
+########################## Assignment: tfidf + logistic regression ##########################################
+
+
+lr = LogisticRegression()
+lr.fit(X_train, y_train)
+y_pred = lr.predict(X_train)
+
+
+y_pred_test = lr.predict(X_test)
+
+print(classification_report(y_train, y_pred))
+print(classification_report(y_test, y_pred_test))
+
+X_clean
+
+
+df_movie_reviews['naive_bayes_proba'] = model_nb.predict_proba(X_clean)[:,0]
+df_movie_reviews['lr_proba'] = lr.predict_proba(X_clean)[:,0]
+
+df_movie_reviews.sort_values(by='lr_proba',ascending=False)
 
