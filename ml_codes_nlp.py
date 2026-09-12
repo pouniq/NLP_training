@@ -165,3 +165,32 @@ data_review.sort_values(by='pred_nb', ascending=False)
 ## - vectorization
 ## - feature engineering
 ## - modelling -- trying different probabaility cut-off points
+
+df_movie_reviews = pd.read_csv('./data/movie_reviews.csv')
+
+df_movie_reviews.groupby('director_gender').count()
+
+X = df_movie_reviews['movie_info']
+y = df_movie_reviews['director_gender']
+
+X_clean = nlp_pipeline(X)
+
+cv = CountVectorizer(stop_words='english', min_df=0.1, ngram_range=(1,2))
+X_clean = cv.fit_transform(X_clean)
+X_clean = pd.DataFrame(X_clean.toarray(), columns = cv.get_feature_names_out())
+
+
+X_train, X_test, y_train, y_test = train_test_split(X_clean,y, test_size=0.2, random_state=42 ,shuffle=True)
+
+
+model_nb = MultinomialNB()
+model_nb.fit(X_train, y_train)
+y_pred = model_nb.predict(X_train)
+
+
+y_pred_test = model_nb.predict(X_test)
+
+print(classification_report(y_train, y_pred))
+print(classification_report(y_test, y_pred_test))
+
+
