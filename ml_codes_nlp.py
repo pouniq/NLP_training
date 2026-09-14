@@ -175,7 +175,7 @@ Xt = pd.DataFrame(X.toarray(), columns=tv2.get_feature_names_out())
 clean_t[clean_t.str.contains(r'\bbr\b', regex=True, na=False)].head()
 from sklearn.decomposition import NMF
 
-model = NMF(n_components=2 )
+model = NMF(n_components=5, random_state=42, max_iter=500 )
 W = model.fit_transform(Xt) # documents-topics
 H = model.components_ # topics-terms
 
@@ -217,7 +217,13 @@ def display_topic(H,num_words=10):
 
     
 topic_0 = display_topic(H)
-topic_1 = display_topic(H, 1)
+
+
+docs_topics = pd.DataFrame(W)
+docs_topics.columns = ['orders', 'taste & texture','good','flavours','health']
+
+reviews_topics = pd.concat([data_review.Text, docs_topics], axis=1)
+
 
 ########################## Assignment: countvectorizer + naive bayes ##########################################
 
