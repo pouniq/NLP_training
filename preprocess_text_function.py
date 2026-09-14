@@ -5,6 +5,10 @@ import spacy
 nlp = spacy.load('en_core_web_sm')
 def preprocess_data(column):
     column = column.str.lower()
+    column = column.str.replace(r'<[^>]+>', ' ', regex=True)
+
+    column = column.str.replace(r'</?br\s*/?>|/br',' ',regex=True)
+
     column = column.str.replace(r'[^\w\s]','',regex=True)
     column = column.str.replace(r'\[.*?\]','',regex=True)
     return column
@@ -31,7 +35,10 @@ def filter_pos(text, pos=['NOUN','PROPN']):
 
 def nlp_pipeline(series):
     output = preprocess_data(series).apply(token_lemma_nonstop).apply(filter_pos)
+    output = output.str.replace(r'\bbr\b', ' ', regex=True)
+    output = output.str.replace(r'\s+', ' ', regex=True).str.strip()
+
     return output
 
-if __name__ == "main":
+if __name__ == "__main__":
     print('text preprocessing module can be used.')

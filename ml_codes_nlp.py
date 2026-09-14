@@ -166,6 +166,59 @@ data_review.sort_values(by='pred_nb', ascending=False)
 
 
 
+
+########################### TOPIC MODELLING ##########################################
+clean_t = nlp_pipeline(data_review.Text_clean)
+tv2 = TfidfVectorizer(stop_words='english', min_df=0.05, max_df=0.2)
+X = tv2.fit_transform(clean_t)
+Xt = pd.DataFrame(X.toarray(), columns=tv2.get_feature_names_out())
+clean_t[clean_t.str.contains(r'\bbr\b', regex=True, na=False)].head()
+from sklearn.decomposition import NMF
+
+model = NMF(n_components=2 )
+W = model.fit_transform(Xt) # documents-topics
+H = model.components_ # topics-terms
+
+W.shape
+H.shape
+H[0]
+
+
+for i in H[0]:
+    threshold = 0.5
+    if i > threshold:
+        print(i)
+
+
+def display_topic(H,topic):
+    threshold = 0.5
+    li = []
+    
+    for i in H[topic]:
+        if i > threshold:
+            li.append(i)
+            
+            
+    return li
+
+
+            
+            
+def display_topic(H,num_words=10):
+    
+    for topic_number, topic_array in enumerate(H) :
+        
+        top_features = (-topic_array).argsort()[:num_words]
+        top_terms = [tv2.get_feature_names_out()[i] for i in top_features]
+        
+        print(topic_number,top_terms)
+    
+    
+
+    
+topic_0 = display_topic(H)
+topic_1 = display_topic(H, 1)
+
 ########################## Assignment: countvectorizer + naive bayes ##########################################
 
 df_movie_reviews = pd.read_csv('./data/movie_reviews.csv')
@@ -215,4 +268,10 @@ df_movie_reviews['naive_bayes_proba'] = model_nb.predict_proba(X_clean)[:,0]
 df_movie_reviews['lr_proba'] = lr.predict_proba(X_clean)[:,0]
 
 df_movie_reviews.sort_values(by='lr_proba',ascending=False)
+
+
+
+
+
+
 
